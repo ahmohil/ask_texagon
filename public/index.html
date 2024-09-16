@@ -3,38 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAG Chatbot</title>
+    <title>Ask Texagon</title>
     <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f5f5;
+            --text-color: #333;
+            --border-color: #ddd;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
         }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+
         #chat-container {
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             height: 400px;
             overflow-y: scroll;
             padding: 10px;
+            margin-bottom: 20px;
+            background-color: white;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .bot-message {
+            background-color: var(--secondary-color);
+            align-self: flex-start;
+        }
+
+        #file-upload-container, #message-input-container {
+            display: flex;
             margin-bottom: 10px;
         }
+
         #file-upload, #message-input {
-            width: 100%;
+            flex-grow: 1;
             padding: 10px;
-            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
         }
+
         #send-btn, #upload-btn {
             padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #send-btn:hover, #upload-btn:hover {
+            background-color: #3a7bc8;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .loading::after {
+            content: "...";
+            animation: dots 1s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: "."; }
+            40% { content: ".."; }
+            60% { content: "..."; }
+            80%, 100% { content: ""; }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            #chat-container {
+                height: 300px;
+            }
+
+            #file-upload-container, #message-input-container {
+                flex-direction: column;
+            }
+
+            #send-btn, #upload-btn {
+                margin-top: 10px;
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>RAG Chatbot</h1>
+    <h1>Ask Texagon</h1>
     <div id="chat-container"></div>
-    <input type="file" id="file-upload">
-    <button id="upload-btn">Upload File</button>
-    <input type="text" id="message-input" placeholder="Type your message...">
-    <button id="send-btn">Send</button>
+    <div id="file-upload-container">
+        <input type="file" id="file-upload">
+        <button id="upload-btn">Upload File</button>
+    </div>
+    <div id="message-input-container">
+        <input type="text" id="message-input" placeholder="Type your message...">
+        <button id="send-btn">Send</button>
+    </div>
+    <div id="loading" class="loading">Processing</div>
 
     <script>
         const chatContainer = document.getElementById('chat-container');
@@ -42,12 +138,20 @@
         const uploadBtn = document.getElementById('upload-btn');
         const messageInput = document.getElementById('message-input');
         const sendBtn = document.getElementById('send-btn');
+        const loading = document.getElementById('loading');
 
         function addMessage(message, isUser = false) {
             const messageElement = document.createElement('div');
-            messageElement.textContent = `${isUser ? 'You' : 'Bot'}: ${message}`;
+            messageElement.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            messageElement.textContent = message;
             chatContainer.appendChild(messageElement);
             chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function setLoading(isLoading) {
+            loading.style.display = isLoading ? 'block' : 'none';
+            uploadBtn.disabled = isLoading;
+            sendBtn.disabled = isLoading;
         }
 
         uploadBtn.addEventListener('click', async () => {
@@ -60,16 +164,19 @@
             const formData = new FormData();
             formData.append('file', file);
 
+            setLoading(true);
             try {
                 const response = await fetch('/upload', {
                     method: 'POST',
                     body: formData
                 });
                 const result = await response.json();
-                addMessage(`File uploaded: ${result.message}`);
+                addMessage(`File uploaded: ${result.message}`, false);
             } catch (error) {
                 console.error('Error uploading file:', error);
-                addMessage('Error uploading file. Please try again.');
+                addMessage('Error uploading file. Please try again.', false);
+            } finally {
+                setLoading(false);
             }
         });
 
@@ -80,6 +187,7 @@
             addMessage(message, true);
             messageInput.value = '';
 
+            setLoading(true);
             try {
                 const response = await fetch('/chat', {
                     method: 'POST',
@@ -89,10 +197,18 @@
                     body: JSON.stringify({ query: message })
                 });
                 const result = await response.json();
-                addMessage(result.response);
+                addMessage(result.response, false);
             } catch (error) {
                 console.error('Error sending message:', error);
-                addMessage('Error processing message. Please try again.');
+                addMessage('Error processing message. Please try again.', false);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendBtn.click();
             }
         });
     </script>
