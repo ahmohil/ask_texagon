@@ -120,4 +120,4 @@ async function chatbot(query, filePath = null) {
   return response;
 }
 
-module.exports = { chatbot };
+module.exports = { chatbot, createEmbedding };
