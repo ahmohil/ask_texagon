@@ -97,8 +97,8 @@ async function generateResponse(query, context) {
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      { role: "system", content: "You are a helpful assistant. Use the provided context to answer the user's question." },
-      { role: "user", content: `Context: ${context}\n\nQuestion: ${query}` }
+      { role: "system", content: "You are a helpful texagon representative. Texagon is a leader in AI soluitions. Given the following context related to users query, answer the question using that information only. If you are unsure and the answer is not explicitly written in the documentation, say 'Sorry, I don't know how to helep with that.'" },
+      { role: "user", content: `Context: ${context}\n\nQuestion: ${query.trim()}` }
     ],
   });
 
