@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #chat-container {
+            border: 1px solid #ccc;
+            height: 400px;
+            overflow-y: scroll;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        #file-upload, #message-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        #send-btn, #upload-btn {
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>RAG Chatbot</h1>
+    <div id="chat-container"></div>
+    <input type="file" id="file-upload">
+    <button id="upload-btn">Upload File</button>
+    <input type="text" id="message-input" placeholder="Type your message...">
+    <button id="send-btn">Send</button>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const fileUpload = document.getElementById('file-upload');
+        const uploadBtn = document.getElementById('upload-btn');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        function addMessage(message, isUser = false) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = `${isUser ? 'You' : 'Bot'}: ${message}`;
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            const file = fileUpload.files[0];
+            if (!file) {
+                alert('Please select a file to upload');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                addMessage(`File uploaded: ${result.message}`);
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                addMessage('Error uploading file. Please try again.');
+            }
+        });
+
+        sendBtn.addEventListener('click', async () => {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, true);
+            messageInput.value = '';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: message })
+                });
+                const result = await response.json();
+                addMessage(result.response);
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessage('Error processing message. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>
