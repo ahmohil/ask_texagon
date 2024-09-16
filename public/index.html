@@ -126,6 +126,10 @@
         <input type="file" id="file-upload">
         <button id="upload-btn">Upload File</button>
     </div>
+    <div id="repo-input-container">
+        <input type="text" id="repo-input" placeholder="Enter GitHub repository URL">
+        <button id="repo-submit-btn">Load Repository</button>
+    </div>
     <div id="message-input-container">
         <input type="text" id="message-input" placeholder="Type your message...">
         <button id="send-btn">Send</button>
@@ -139,6 +143,8 @@
         const messageInput = document.getElementById('message-input');
         const sendBtn = document.getElementById('send-btn');
         const loading = document.getElementById('loading');
+        const repoInput = document.getElementById('repo-input');
+        const repoSubmitBtn = document.getElementById('repo-submit-btn');
 
         function addMessage(message, isUser = false) {
             const messageElement = document.createElement('div');
@@ -152,6 +158,7 @@
             loading.style.display = isLoading ? 'block' : 'none';
             uploadBtn.disabled = isLoading;
             sendBtn.disabled = isLoading;
+            repoSubmitBtn.disabled = isLoading;
         }
 
         uploadBtn.addEventListener('click', async () => {
@@ -211,6 +218,34 @@
                 sendBtn.click();
             }
         });
+
+        async function loadRepository() {
+            const repoUrl = repoInput.value.trim();
+            if (!repoUrl) {
+                alert('Please enter a valid GitHub repository URL');
+                return;
+            }
+
+            setLoading(true);
+            try {
+                const response = await fetch('/load-repository', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ repoUrl: repoUrl })
+                });
+                const result = await response.json();
+                addMessage(`Repository loaded: ${result.message}`, false);
+            } catch (error) {
+                console.error('Error loading repository:', error);
+                addMessage('Error loading repository. Please try again.', false);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        repoSubmitBtn.addEventListener('click', loadRepository);
     </script>
 </body>
 </html>
